@@ -43,7 +43,7 @@ code_start      equ 0x7000      ; main code base
 
 #code bloader,0,17,0
         defb    0                       ; Indicates a Basic program
-        defb    "bloader   "            ; the block name, 10 bytes long
+        defb    "BLoader   "            ; the block name, 10 bytes long
         defw    variables_end-0         ; length of block = length of basic program plus variables
         defw    10                      ; line number for auto-start, 0x8000 if none
         defw    program_end-0           ; length of the basic program without variables
@@ -88,7 +88,7 @@ variables_end:
 ; ---------------------------------------------------
 #code mloader,0,17,0
         defb    3                       ; Indicates binary data
-        defb    "mloader   "            ; the block name, 10 bytes long
+        defb    "MLoader   "            ; the block name, 10 bytes long
         defw    mloaderend-mloaderstart     ; length of data block which follows
         defw    mloaderstart              ; default location for the data
         defw    0                       ; unused
@@ -98,7 +98,7 @@ mloaderend:
 
 #code teletext,0,17,0
         defb    3                           ; Indicates binary data
-        defb    "teletext  "                ; the block name, 10 bytes long
+        defb    "TeleText  "                ; the block name, 10 bytes long
         defw    teletextend-teletextstart ; length of data block which follows
         defw    teletextstart              ; default location for the data
         defw    0                           ; unused
@@ -109,7 +109,7 @@ teletextend:
 
 #code splash,0,17,0
         defb    3                           ; Indicates binary data
-        defb    "splash    "                ; the block name, 10 bytes long
+        defb    "Splash Scr"                ; the block name, 10 bytes long
         defw    splashend-0xFB00             ; length of data block which follows
         defw    0xFB00                      ; default location for the data
         defw    0                           ; unused
@@ -120,7 +120,7 @@ splashend:
 
 #code railboard,0,17,0
         defb    3                       ; Indicates binary data
-        defb    "departures"            ; the block name, 10 bytes long
+        defb    "Departures"            ; the block name, 10 bytes long
         defw    code_end-code_start     ; length of data block which follows
         defw    code_start              ; default location for the data
         defw    code_start              ; unused

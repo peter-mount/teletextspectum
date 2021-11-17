@@ -2,78 +2,138 @@
 ; TZX Loader
 ; ----------------------------------------------------------------------
 
-loadLoop:
-        LD      HL, loadLoop        ; Load stack with return address
-        PUSH    HL                  ; as the loader start so we repeat
+machineType     = 0xFF00            ; We will store the machine type here
+machine_48      = 0                 ; Spectrum 48k
+machine_128     = 1                 ; Spectrum 128K
 
-        SUB     A                   ; A=0 for header
-        LD      IX, tapeHeader
-        LD      DE, 17
-        CALL    tapeLoad
-        RET     NC                  ; Loop back on error
+            LD      HL, ldB1            ; Show Banner
+            CALL    wmsg
 
-        CALL    tapePr              ; Show block name on screen
+; Detect machine type
+            LD      A, (0x5B5C)         ; Switch rom
+            PUSH    AF                  ; Save current rom
+            AND     &EF                 ; to ensure non-48k rom is selected, bit 4 is 0
+            LD      BC, 0x7FFD          ; Ram paging port
+            DI                          ; Switch the port between DI/EI
+            LD      (0x5B5C), A
+            OUT     (C), A
+            EI
 
-        LD      A, 0xFF             ; Data Block
-        LD      IX, (tapAdd)        ; Load address from header
-        PUSH    IX                  ; Save address
-        LD      DE, (tapLen)        ; Length of data
-        CALL    tapeLoad            ; Load data
-        POP     HL                  ; Restore load address
-        RET     NC                  ; Loop back on error
+            LD      A, (0x153B)         ; Address of 1 in (C)1982 in spectrum 48k rom
+            CP      '1'
+            JR      Z, zx48             ; We have a 48K
 
-        LD      A,H                 ; Check high byte of HL
+            LD      A, machine_128
+            JR      setMachine
 
-        CP      0x40                ; Screen area
-        RET     Z                   ; then do nothing
+zx48:       LD      A, machine_48
 
-        CP      0xF4                ; Teletext loaded
-        JR      NZ, noTT            ; No so skip
-        LD      (ttLoad),A          ; Set flag
-        CALL    init                ; Initialise Teletext
-        LD      HL, ldBanr          ; Show banner
-        JP      writeString
+setMachine: LD      (machineType), A    ; Store machine type
 
-noTT:   CP      0xFB                ; Teletext screen
-        JP      Z, refreshScreen    ; Refresh Teletext Screen
+            POP     AF                  ; Restore previous rom
+            LD      BC, 0x7FFD          ; Ram paging port
+            DI                          ; Switch the port between DI/EI
+            LD      (0x5B5C), A
+            OUT     (C), A
+            EI
 
-        JP      (HL)                ; Otherwise run loaded code
+loadLoop:   LD      HL, loadLoop        ; Load stack with return address
+            PUSH    HL                  ; as the loader start so we repeat
+
+            SUB     A                   ; A=0 for header
+            LD      IX, tapeHeader
+            LD      DE, 17
+            CALL    tapeLoad
+            RET     NC                  ; Loop back on error
+
+            CALL    tapePr              ; Show block name on screen
+
+            LD      A, 0xFF             ; Data Block
+            LD      IX, (tapAdd)        ; Load address from header
+            PUSH    IX                  ; Save address
+            LD      DE, (tapLen)        ; Length of data
+            CALL    tapeLoad            ; Load data
+            POP     HL                  ; Restore load address
+            RET     NC                  ; Loop back on error
+
+            LD      A,H                 ; Check high byte of HL
+
+            CP      0x40                ; Screen area
+            RET     Z                   ; then do nothing
+
+            CP      0xF4                ; Teletext loaded
+            JR      NZ, noTT            ; No so skip
+            LD      (ttLoad),A          ; Set flag
+            CALL    init                ; Initialise Teletext
+            JP      writeBanner         ; Show our banner
+
+noTT:       CP      0xFB                ; Teletext screen
+            JP      Z, refreshScreen    ; Refresh Teletext Screen
+            JP      (HL)                ; Otherwise run loaded code
 
 tapeLoad:
-        SCF                         ; C=1 for load
-        JP      0x0556              ; LD_BYTES
+            SCF                         ; C=1 for load
+            JP      0x0556              ; LD_BYTES
 
-tapePr: LD      HL, tapNam          ; Address of loaded block name
-        LD      A, (ttLoad)         ; Check if ZX RST2 or Teletext
-        AND     A
-        JR      NZ, tPrTT           ; Use Teletext screen
-tPrZX:  LD      B, 10               ; 10 bytes, space padded
-tPrZX1: LD      A,(HL)              ; Write name to screen
-        RST     2
-        INC     HL
-        DJNZ    tPrZX1
-        RET
-tPrTT:  PUSH    HL
-        CALL    getPos
-        POP     HL
-        PUSH    BC
-        LD      BC, 30
-        CALL    setPos
-        LD      B, 10               ; 10 bytes, space padded
-tPrTT1: LD      A,(HL)              ; write name to oswrch
-        CALL    oswrch
-        INC     HL
-        DJNZ    tPrTT1
-        POP     BC                  ; Restore cursor
-        JP      setPos
+tapePr:     LD      A, (ttLoad)         ; Check if ZX RST2 or Teletext
+            AND     A
+            JR      NZ, tPrTT           ; Use Teletext screen
+tPrZX:      LD      HL, tapNam          ; Address of loaded block name
+            LD      B, 10               ; 10 bytes, space padded
+tPrZX1:     LD      A,(HL)              ; Write name to screen
+            RST     2
+            INC     HL
+            DJNZ    tPrZX1
+            RET
+tPrTT:      CALL    getPos              ; Get current teletext cursor position
+            PUSH    BC                  ; Save position
+            LD      BC, 0x001E           ; set position 001E=row 0 col 30
+            CALL    setPos
+            LD      HL, tapNam          ; Address of loaded block name
+            LD      B, 10               ; 10 bytes, space padded
+tPrTT1:     LD      A, (HL)             ; write name to oswrch
+            CALL    oswrch
+            INC     HL
+            DJNZ    tPrTT1
+            POP     BC                  ; Restore cursor
+            JP      setPos
 
-ttLoad: defb    0                   ; 0 = RST, != for teletext
+wmsg:       LD      A,(HL)              ; Simple write null terminated string
+            AND     A                   ; to RST 2
+            RET     Z
+            RST     2
+            INC     HL
+            JR      wmsg
 
-tapeHeader:
-        defb    3                   ; 0=header, 1=data
-tapNam: defb    "          "        ; Block name, 10 chars
-tapLen: defw    0                   ; length of data block which follows
-tapAdd: defw    0                   ; location for the data
-        defw    0                   ; unused
+writeBanner:
+            LD      HL, ldBanr          ; Show teletext banner
+            CALL    writeString
 
-ldBanr: defb    12, 134, "Loading...", 30, 40-10-1, 0,135,0
+            LD      A,(machineType)     ; Show machine name
+            ADD     A,A                 ; a=a*8
+            ADD     A,A
+            ADD     A,A
+            LD      C,A
+            LD      B,0
+            LD      HL, ldMachine
+            ADD     HL, BC
+            JP      writeString
+
+ldB1:       defb    "Loading... ", 0
+ldBanr:     defb    134, "Area51 ZX Tape Loader 0.01", 31, 29, 0, 135, 13, 10
+            defb    132, 157, 135, 141, "     Teletext ZX Spectrum 0.01", 13, 10
+            defb    132, 157, 135, 141, "     Teletext ZX Spectrum 0.01"
+            defb    31, 0, 20, 130, "Please wait whilst loading completes..."
+            defb    31, 0, 4, 13, 131, "Machine: ", 0
+ldMachine:  defb    "48k", 13,10, 0,0,0     ; 8 bytes per machine type
+            defb    "128K", 13,10, 0,0
+            defb    "+2", 13,10, 0,0,0,0
+            defb    "+2A/+3", 13, 10, 0     ; Last entry, ok for this to be 9 bytes long
+
+ttLoad:     defb    0                   ; 0 = RST, != for teletext
+
+tapeHeader: defb    3                   ; 0=header, 1=data
+tapNam:     defb    "          "        ; Block name, 10 chars
+tapLen:     defw    0                   ; length of data block which follows
+tapAdd:     defw    0                   ; location for the data
+            defw    0                   ; unused

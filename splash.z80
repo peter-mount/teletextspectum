@@ -17,7 +17,7 @@
 ;  limitations under the License.
 ; **********************************************************************
 
-    defb 134, "departureboards.mobi      ",135,"ZX 48 ",129,"v0.01"
+    defb 134, "departureboards.mobi        ",135,"          "
     defb &96, &ff, &ff, &ff, &ff, &ff, &ff, &ff
     defb &ff, &ff, &ff, &ff, &ff, &ff, &bf, &af, &af, &a3, &a3, &a3, &a3, &a3, &a3, &a3
     defb &a3, &a3, &a3, &af, &af, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff
