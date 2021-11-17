@@ -1,0 +1,130 @@
+; ================================================================
+; Spectrum Departure Boards - tap format
+; ================================================================
+
+; fill byte is 0x00
+; #code has an additional argument: the sync byte for the block.
+; The assembler calculates and appends checksum byte to each segment.
+; Note: If a segment is appended without an explicite address, then the sync byte and the checksum byte
+; of the preceding segment are not counted when calculating the start address of this segment.
+
+#target tzx
+
+; sync bytes:
+headerflag:     equ 0
+dataflag:       equ 0xff
+
+; some Basic tokens:
+tCLEAR      equ     $FD             ; token CLEAR
+tLOAD       equ     $EF             ; token LOAD
+tCODE       equ     $AF             ; token CODE
+tPRINT      equ     $F5             ; token PRINT
+tRANDOMIZE  equ     $F9             ; token RANDOMIZE
+tUSR        equ     $C0             ; token USR
+
+printer_buffer  equ 0x5B00      ; ZXSP printer buffer
+mloaderstart    equ 24000       ; Our tape loader
+teletextstart   equ 0xF400      ; teletext emulator
+code_start      equ 0x7000      ; main code base
+
+; ---------------------------------------------------
+;       ram-based, non-initialized variables
+;       (note: 0x5B00 is the printer buffer)
+;       (note: system variables at 0x5C00 were initialized by Basic)
+; ---------------------------------------------------
+
+#data VARIABLES, printer_buffer, 0x100
+
+; define some variables here
+
+; ---------------------------------------------------
+;       a Basic Loader:
+; ---------------------------------------------------
+
+#code bloader,0,17,0
+        defb    0                       ; Indicates a Basic program
+        defb    "bloader   "            ; the block name, 10 bytes long
+        defw    variables_end-0         ; length of block = length of basic program plus variables
+        defw    10                      ; line number for auto-start, 0x8000 if none
+        defw    program_end-0           ; length of the basic program without variables
+
+
+#code bloaderdata,0,*,0xff
+
+; ZX Spectrum Basic tokens
+
+; 10 CLEAR 23999
+        defb    0,10                    ; line number
+        defb    end10-($+1)             ; line length
+        defb    0                       ; statement number
+        defb    tCLEAR                  ; token CLEAR
+        defm    "23999",$0e0000bf5d00   ; number 23999, ascii & internal format
+end10:  defb    $0d                     ; line end marker
+
+; 20 LOAD "" CODE 24000
+        defb    0,20                    ; line number
+        defb    end20-($+1)             ; line length
+        defb    0                       ; statement number
+        defb    tLOAD,'"','"',tCODE     ; token LOAD, 2 quotes, token CODE
+        defm    "24000",$0e0000c05d00   ; number 24000, ascii & internal format
+end20:  defb    $0d                     ; line end marker
+
+; 30 RANDOMIZE USR 24000
+        defb    0,30                    ; line number
+        defb    end30-($+1)             ; line length
+        defb    0                       ; statement number
+        defb    tRANDOMIZE,tUSR         ; token RANDOMIZE, token USR
+        defm    "24000",$0e0000c05d00   ; number 24000, ascii & internal format
+end30:  defb    $0d                     ; line end marker
+
+program_end:
+
+        ; ZX Spectrum Basic variables
+
+variables_end:
+
+; ---------------------------------------------------
+;       a machine code block:
+; ---------------------------------------------------
+#code mloader,0,17,0
+        defb    3                       ; Indicates binary data
+        defb    "mloader   "            ; the block name, 10 bytes long
+        defw    mloaderend-mloaderstart     ; length of data block which follows
+        defw    mloaderstart              ; default location for the data
+        defw    0                       ; unused
+#code mloaderdata, mloaderstart,*,0xff
+#include "loader.z80"
+mloaderend:
+
+#code teletext,0,17,0
+        defb    3                           ; Indicates binary data
+        defb    "teletext  "                ; the block name, 10 bytes long
+        defw    teletextend-teletextstart ; length of data block which follows
+        defw    teletextstart              ; default location for the data
+        defw    0                           ; unused
+
+#code teletextdata, teletextstart,*,0xff
+#include "screen.z80"
+teletextend:
+
+#code splash,0,17,0
+        defb    3                           ; Indicates binary data
+        defb    "splash    "                ; the block name, 10 bytes long
+        defw    splashend-0xFB00             ; length of data block which follows
+        defw    0xFB00                      ; default location for the data
+        defw    0                           ; unused
+
+#code splashdata, 0xFB00,*,0xff
+#include "splash.z80"
+splashend:
+
+#code railboard,0,17,0
+        defb    3                       ; Indicates binary data
+        defb    "departures"            ; the block name, 10 bytes long
+        defw    code_end-code_start     ; length of data block which follows
+        defw    code_start              ; default location for the data
+        defw    code_start              ; unused
+
+#code railboarddata, code_start,*,0xff
+#include "main.z80"
+code_end:

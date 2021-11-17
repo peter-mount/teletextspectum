@@ -1,0 +1,79 @@
+; ----------------------------------------------------------------------
+; TZX Loader
+; ----------------------------------------------------------------------
+
+loadLoop:
+        LD      HL, loadLoop        ; Load stack with return address
+        PUSH    HL                  ; as the loader start so we repeat
+
+        SUB     A                   ; A=0 for header
+        LD      IX, tapeHeader
+        LD      DE, 17
+        CALL    tapeLoad
+        RET     NC                  ; Loop back on error
+
+        CALL    tapePr              ; Show block name on screen
+
+        LD      A, 0xFF             ; Data Block
+        LD      IX, (tapAdd)        ; Load address from header
+        PUSH    IX                  ; Save address
+        LD      DE, (tapLen)        ; Length of data
+        CALL    tapeLoad            ; Load data
+        POP     HL                  ; Restore load address
+        RET     NC                  ; Loop back on error
+
+        LD      A,H                 ; Check high byte of HL
+
+        CP      0x40                ; Screen area
+        RET     Z                   ; then do nothing
+
+        CP      0xF4                ; Teletext loaded
+        JR      NZ, noTT            ; No so skip
+        LD      (ttLoad),A          ; Set flag
+        CALL    init                ; Initialise Teletext
+        LD      HL, ldBanr          ; Show banner
+        JP      writeString
+
+noTT:   CP      0xFB                ; Teletext screen
+        JP      Z, refreshScreen    ; Refresh Teletext Screen
+
+        JP      (HL)                ; Otherwise run loaded code
+
+tapeLoad:
+        SCF                         ; C=1 for load
+        JP      0x0556              ; LD_BYTES
+
+tapePr: LD      HL, tapNam          ; Address of loaded block name
+        LD      A, (ttLoad)         ; Check if ZX RST2 or Teletext
+        AND     A
+        JR      NZ, tPrTT           ; Use Teletext screen
+tPrZX:  LD      B, 10               ; 10 bytes, space padded
+tPrZX1: LD      A,(HL)              ; Write name to screen
+        RST     2
+        INC     HL
+        DJNZ    tPrZX1
+        RET
+tPrTT:  PUSH    HL
+        CALL    getPos
+        POP     HL
+        PUSH    BC
+        LD      BC, 30
+        CALL    setPos
+        LD      B, 10               ; 10 bytes, space padded
+tPrTT1: LD      A,(HL)              ; write name to oswrch
+        CALL    oswrch
+        INC     HL
+        DJNZ    tPrTT1
+        POP     BC                  ; Restore cursor
+        JP      setPos
+
+ttLoad: defb    0                   ; 0 = RST, != for teletext
+
+tapeHeader:
+        defb    3                   ; 0=header, 1=data
+tapNam: defb    "          "        ; Block name, 10 chars
+tapLen: defw    0                   ; length of data block which follows
+tapAdd: defw    0                   ; location for the data
+        defw    0                   ; unused
+
+ldBanr: defb    12, 134, "Loading...", 30, 40-10-1, 0,135,0
