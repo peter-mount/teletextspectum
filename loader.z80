@@ -2,18 +2,18 @@
 ; TZX Loader
 ; ----------------------------------------------------------------------
 
-machineType     = 0xFF00            ; We will store the machine type here
-machine_48      = 0                 ; Spectrum 48k
-machine_128     = 1                 ; Spectrum 128K UK
-machine_128es   = 2                 ; Spectrum 128K Spanish
-machine_plus2   = 3                 ; Spectrum +2
-machine_plus3   = 4                 ; Spectrum +2A/+3
+machineType     = 0xFF00                ; We will store the machine type here
 
-            LD      HL, ldB1            ; Show Banner
+#include "teletext.inc"
+
+            ORG     24000               ; Unified tape loader with teletext support
+
+; Unified tape loader entry point
+loader:     LD      HL, ldB1            ; Show Banner
             CALL    wmsg
 
             CALL    detectMachine       ; Detect and store machine type
-
+            LD      (machineType), A
 
 loadLoop:   LD      HL, loadLoop        ; Load stack with return address
             PUSH    HL                  ; as the loader start so we repeat
@@ -42,11 +42,11 @@ loadLoop:   LD      HL, loadLoop        ; Load stack with return address
             CP      0xF4                ; Teletext loaded
             JR      NZ, noTT            ; No so skip
             LD      (ttLoad),A          ; Set flag
-            CALL    init                ; Initialise Teletext
+            CALL    teletextInit        ; Initialise Teletext
             JP      writeBanner         ; Show our banner
 
 noTT:       CP      0xFB                ; Teletext screen
-            JP      Z, refreshScreen    ; Refresh Teletext Screen
+            JP      Z, teletextRefresh  ; Refresh Teletext Screen
             JP      (HL)                ; Otherwise run loaded code
 
 tapeLoad:
@@ -63,18 +63,18 @@ tPrZX1:     LD      A,(HL)              ; Write name to screen
             INC     HL
             DJNZ    tPrZX1
             RET
-tPrTT:      CALL    getPos              ; Get current teletext cursor position
+tPrTT:      CALL    teletextGetPos      ; Get current teletext cursor position
             PUSH    BC                  ; Save position
-            LD      BC, 0x001E           ; set position 001E=row 0 col 30
-            CALL    setPos
+            LD      BC, 0x001E          ; set position 001E=row 0 col 30
+            CALL    teletextSetPos
             LD      HL, tapNam          ; Address of loaded block name
             LD      B, 10               ; 10 bytes, space padded
 tPrTT1:     LD      A, (HL)             ; write name to oswrch
             CALL    oswrch
             INC     HL
             DJNZ    tPrTT1
-            POP     BC                  ; Restore cursor
-            JP      setPos
+            POP     BC                  ; Restore cursor position
+            JP      teletextSetPos
 
 wmsg:       LD      A,(HL)              ; Simple write null terminated string
             AND     A                   ; to RST 2
@@ -97,63 +97,7 @@ writeBanner:
             ADD     HL, BC
             JP      writeString
 
-detectMachine:                          ; Detect machine type
-            CALL    detectMachine1      ; Call detection routine
-            LD      A, D                ; Store result in machineType
-            LD      (machineType), A
-            RET
-
-detectMachine1:
-            LD      A, (0x5B5C)         ; Switch rom
-            PUSH    AF                  ; Save current rom
-            AND     &EF                 ; to ensure non-48k rom is selected, bit 4 is 0
-            CALL    romSel1             ; change rom1, will do nothing on a 48K
-            CALL    detectMachine2      ; run tests
-            POP     AF                  ; Restore rom
-romSel1:    LD      BC, 0x7FFD          ; Select rom on 128K and later
-            DI                          ; Switch the port between DI/EI
-            LD      (0x5B5C), A
-            OUT     (C), A
-            EI
-            RET
-
-detectMachine2:
-            LD      D, machine_48       ; Test for a 48K
-            LD      A, (0x153B)         ; Address of 1 in (C)1982 in spectrum 48k rom
-            CP      '1'
-            RET     Z
-
-            LD      A, (0x5B67)         ; Switch rom on +3
-            PUSH    AF                  ; Save current rom
-            AND     &FB                 ; This time bit 2 is 0 on second port, does nothing on 128/+2
-            CALL    romSel2
-            CALL    detectMachine3      ; run tests
-            POP     AF                  ; restoring old rom
-romSel2:    LD      BC, 0x1FFD          ; Select rom on +2A/+3
-            DI                          ; Switch the port between DI/EI
-            LD      (0x5B67), A
-            OUT     (C), A
-            EI
-            RET
-
-detectMachine3:
-            LD      D, machine_plus3    ; Test for +3
-            LD      A, (0x168e)         ; Address of "SPECTRUM" in +3 rom 0
-            CP      'S'
-            RET     Z
-
-            LD      D, machine_plus2    ; Test for +2
-            LD      A, (0x0562)         ; See if we are a +2
-            CP      '1'                 ; This is 1 in "(C)1982 Amstrad"
-            RET     Z
-
-            LD      D, machine_128es    ; See if Spanish 128K
-            LD      A, (0x0508)
-            CP      '1'                 ; This is 1 in "(C) 1985 Sinclair"
-            RET     Z
-
-            LD      D, machine_128      ; We must be a 128K if we got here
-            RET
+#include "machinetype.z80"
 
 ldB1:       defb    "Loading... ", 0
 ldBanr:     defb    134, "Area51 ZX Tape Loader 0.01", 31, 29, 0, 135, 13, 10
