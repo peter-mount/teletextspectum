@@ -176,9 +176,9 @@ rlc1bb:
     jr      nz, rlc1nb
     ld      a, (tempCol)
     and     &07                     ; mask text col
-    sla     a                       ; shift left 3
-    sla     a
-    sla     a
+    add     a                       ; shift left 3
+    add     a                       ; add not sla as half size & time to execute
+    add     a
     or      &07                     ; white text TODO check if ok
     jr      rlc1setcol
 
@@ -189,7 +189,7 @@ rlc1nb:
     jp      p, rlc2
 
                                     ; convert BBC colour to spectrum colour. Easy as bits 210 -> 102
-    sla     a                       ; shift left 1 bit
+    add     a                       ; shift left 1 bit
     bit     3,a                     ; new bit 2
     jr      z,rlc1nb1               ; not set so bit 0 is correct
     set     0,a                     ; set bit 0
@@ -309,11 +309,11 @@ getSpectrumCharPos:             ; Get Spectrum char pos (bc) into HL for physica
     ld      h, a                ; Set H
 
     ld      a, b                ; get row
-    sla     a                   ; Shift left 5 to form low address
-    sla     a
-    sla     a
-    sla     a
-    sla     a                   ; HA is now the address of the start of line
+    add     a                   ; Shift left 5 to form low address
+    add     a                   ; add not sla as half size & time to execute
+    add     a
+    add     a
+    add     a                   ; HA is now the address of the start of line
 
     or      c                   ; Add column value
     ld      l, a                ; HL now address of top row of character
@@ -422,8 +422,8 @@ wrchr0:                         ; Write char 0 in the block
     and     &03                 ; mask out space for new char
     ld      c,a                 ; save in c
     ld      a, (de)             ; Get char definition
-    sla     a                   ; Shift left 2
-    sla     a
+    add     a                   ; Shift left 2
+    add     a
     or      c                   ; bring in next char in bottom 2 bits
     ld      (hl),a              ; store on screen
     inc     h                   ; next pixel line down
@@ -448,10 +448,10 @@ wrchr1:                         ; write char 1 in the block
     and     &0f                 ; mask out space for new char
     ld      c,a                 ; save in c
     ld      a, (de)             ; Get char definition
-    sla     a                   ; Shift left 4
-    sla     a
-    sla     a
-    sla     a
+    add     a                   ; Shift left 4
+    add     a
+    add     a
+    add     a
     or      c                   ; bring in next char in bottom 4 bits
     ld      (hl),a              ; store on screen
     dec     l                   ; restore l for next row
@@ -482,12 +482,12 @@ wrchr21:
     and     &3f                 ; mask out space for new char
     ld      c,a                 ; save in c
     ld      a, (de)             ; Get char definition
-    sla     a                   ; Shift left 6
-    sla     a
-    sla     a
-    sla     a
-    sla     a
-    sla     a
+    add     a                   ; Shift left 6
+    add     a
+    add     a
+    add     a
+    add     a
+    add     a
     or      c                   ; bring in next char in bottom 4 bits
     ld      (hl),a              ; store on screen
     dec     l                   ; restore l for next row
@@ -547,7 +547,7 @@ oswrch0:
     jp      nc, oswrch1         ; no then treat as text
 
     ld      (vduBuffCmd),a      ; store command
-    sla     a                   ; Get address from vduTable
+    add     a                   ; Get address from vduTable
     ld      h,0
     ld      l,a
     ld      de,vduTable
