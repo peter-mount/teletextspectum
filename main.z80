@@ -1,6 +1,10 @@
 ; ----------------------------------------------------------------------
 ; main.z80  The main entry point
 ; ----------------------------------------------------------------------
+        org     0x7000
+
+#include "teletext.inc"
+
         ;call    clearScreen         ; clear screen to black
         ld      hl, banner          ; banner text
         call    writeString

@@ -1,0 +1,23 @@
+#target tzx
+
+#code splash,0,17,0
+        defb    3                       ; Indicates binary data
+        defb    "Splash Scr"            ; the block name, 10 bytes long
+        defw    splashend-0xFB00        ; length of data block which follows
+        defw    0xFB00                  ; default location for the data
+        defw    0                       ; unused
+
+#code splashdata, 0xFB00,*,0xff
+#include "splash.z80"
+splashend:
+
+#code railboard,0,17,0
+        defb    3                       ; Indicates binary data
+        defb    "Departures"            ; the block name, 10 bytes long
+        defw    code_end-0x7000         ; length of data block which follows
+        defw    0x7000                  ; default location for the data
+        defw    0                       ; unused
+
+#code railboarddata, 0x7000,*,0xff
+#include "main.z80"
+code_end:

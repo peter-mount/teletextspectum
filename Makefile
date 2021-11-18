@@ -6,25 +6,29 @@
 export ZASM				= zasm
 
 .PHONY: all loader teletext
-all: loader teletext test.tzx
+all: loader teletext test
 
 clean:
 	$(RM) *.lst *.rom *.tap *.tzx
 
-loader: loader.tzx loader-tzx.tzx
+loader: loader.rom loader.tzx loader-tzx.tzx
 
-#loader.rom:	loader.z80 machinetype.z80
+loader.rom:	loader.z80 machinetype.z80
 
 loader-tzx.tzx: loader-tzx.z80 loader.z80 machinetype.z80
 
-teletext: teletext.tzx teletext-tzx.tzx
+teletext: teletext.rom teletext.tzx teletext-tzx.tzx
 
-#teletext.rom: teletext.z80 charset1.z80
+teletext.rom: teletext.z80 charset1.z80
 
 teletext-tzx.tzx: teletext-tzx.z80 teletext.z80 charset1.z80
 
-test.tzx: loader-tzx.tzx teletext-tzx.tzx
+# Test application consisting of the loader, teletext, splash screen & test page
+test: test-tzx.tzx test.tzx
+test.tzx: loader-tzx.tzx teletext-tzx.tzx test-tzx.tzx
 	cat $^ >test.tzx
+
+test-tzx.tzx: splash.z80 main.z80
 
 #teletext.tzx: teletext.z80 loader.z80 machinetype.z80 main.z80 screen.z80 charset1.z80 splash.z80
 
