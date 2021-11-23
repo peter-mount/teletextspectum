@@ -5,27 +5,15 @@
 # ======================================================================
 export ZASM				= zasm
 
-.PHONY: all loader teletext
-all: teletext test
+.PHONY: all loader
+all: loader
 
 clean:
-	@$(MAKE) -C tape clean
 	$(RM) *.lst *.rom *.tap *.tzx *.dsk
 
-teletext: teletext.rom teletext.tzx teletext-tzx.tzx
+loader: loader.rom loader.tzx loader-tzx.tzx
 
-teletext.rom: teletext.z80 charset1.z80
-
-teletext-tzx.tzx: teletext-tzx.z80 teletext.z80 charset1.z80
-
-# Test application consisting of the loader, teletext, splash screen & test page
-test: test-tzx.tzx test.tzx
-test.tzx: tape/loader-tzx.tzx teletext-tzx.tzx test-tzx.tzx
-	cat $^ >test.tzx
-
-test-tzx.tzx: splash.z80 main.z80
-
-#teletext.tzx: teletext.z80 loader.z80 machinetype.z80 main.z80 screen.z80 charset1.z80 splash.z80
+loader-tzx.tzx: loader-tzx.z80 basloader.z80 loader.z80 machinetype.z80
 
 %.rom: %.z80
 	$(ZASM) $<

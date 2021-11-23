@@ -1,10 +1,10 @@
 ; ----------------------------------------------------------------------
-; TZX Loader
+; Unified tape loader
 ; ----------------------------------------------------------------------
 
 machineType     = 0xFF00                ; We will store the machine type here
 
-#include "teletext.inc"
+#include "../teletext.inc"
 
             ORG     24000               ; Unified tape loader with teletext support
 
@@ -97,7 +97,7 @@ writeBanner:
             ADD     HL, BC
             JP      writeString
 
-#include "machinetype.z80"
+#include "../machinetype.z80"
 
 ldB1:       defb    "Loading... ", 0
 ldBanr:     defb    134, "Area51 ZX Tape Loader 0.01", 31, 29, 0, 135, 13, 10
