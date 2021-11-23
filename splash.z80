@@ -16,6 +16,7 @@
 ;  See the License for the specific language governing permissions and
 ;  limitations under the License.
 ; **********************************************************************
+    org 0xFB00
 
     defb 134, "departureboards.mobi        ",135,"          "
     defb &96, &ff, &ff, &ff, &ff, &ff, &ff, &ff

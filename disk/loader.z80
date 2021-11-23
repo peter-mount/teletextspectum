@@ -16,18 +16,32 @@ DOS_READ        EQU 0x0112
 
 loader:     LD      SP, 0x61FF          ; Set stack for 0x6000-61ff
 
-            LD      HL, ldB1            ; Show Loading Banner
-            CALL    wmsg
-
             LD      HL, telfname        ; Load teletext module
             CALL    loadFile
             jp     NC, err
 
-            CALL    teletextInit        ; Initialise Teletext
-            CALL    writeBanner         ; Show our banner
+            LD      (addr), HL          ; Save manifest
+l1:         LD      HL, (addr)
+            CALL    loadFile
+            JR      NC, err             ; Fail with error
+            CALL    l2                  ; test to see what to do with it
+            LD      HL, (addr)          ; Look for next 0xFF
+            LD      BC, 20              ; Max search length
+            LD      A, 0xFF
+            CPIR
+            LD      (addr), HL
+            JR      l1                  ; loop to next file
 
-l1:         JP l1
-            ret
+l2:         LD      A, H
+            CP      0x5D                ; Skip if HL<0x5D00
+            RET     C
+
+            CP      0xFB                ; If <0xFB00 then execute it
+            JR      C, l3
+            JP      teletextRefresh     ; Refresh teletext page
+l3:         JP      (HL)                ; Jump to program
+
+addr:       defw    0                   ; Address for manifest
 
 ; Print A to RST2 as hex - used for error reporting
 err:        PUSH AF
@@ -90,26 +104,6 @@ loadFile2:  LD      DE,(IX+1)           ; File length from Basic Header
             LD      B, 0                ; File 0
             JP      DOS_CLOSE
 
-wmsg:       LD      A,(HL)              ; Simple write null terminated string
-            AND     A                   ; to RST 2
-            RET     Z
-            RST     2
-            INC     HL
-            JR      wmsg
-
-writeBanner:
-            LD      HL, ldBanr          ; Show teletext banner
-            JP      writeString
-
 #include "../machinetype.z80"
 
-telfname:   defb    "TELETEXT", 0xFF
-
-ldB1:       defb    "Loading... ", 0
-ldBanr:     defb    134, "Area51 +3 Disk Loader 0.01", 31, 29, 0, 135, 13, 10
-            defb    132, 157, 135, 141, "     Teletext ZX Spectrum 0.01", 13, 10
-            defb    132, 157, 135, 141, "     Teletext ZX Spectrum 0.01"
-            defb    31, 0, 20, 130, "Please wait whilst loading completes..."
-            defb    0
-
-ttLoad:     defb    0                   ; 0 = RST, != for teletext
+telfname:   defb    "MANIFEST", 0xFF
