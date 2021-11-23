@@ -1,0 +1,45 @@
+
+; ---------------------------------------------------
+; Basic Loader: this expects machine code to load
+; and run at 24000, usually that in loader.z80
+; ---------------------------------------------------
+
+; some Basic tokens:
+tCLEAR      equ     $FD             ; token CLEAR
+tLOAD       equ     $EF             ; token LOAD
+tCODE       equ     $AF             ; token CODE
+tPRINT      equ     $F5             ; token PRINT
+tRANDOMIZE  equ     $F9             ; token RANDOMIZE
+tUSR        equ     $C0             ; token USR
+
+        org     0
+
+; 10 CLEAR 23999
+        defb    0,10                    ; line number
+        defb    end10-($+1)             ; line length
+        defb    0                       ; statement number
+        defb    tCLEAR                  ; token CLEAR
+        defm    "23999",$0e0000bf5d00   ; number 23999, ascii & internal format
+end10:  defb    $0d                     ; line end marker
+
+; 20 LOAD "" CODE 24000
+        defb    0,20                    ; line number
+        defb    end20-($+1)             ; line length
+        defb    0                       ; statement number
+        defb    tLOAD,'"',"LOADER",'"',tCODE     ; token LOAD, 2 quotes, token CODE
+        defm    "24000",$0e0000c05d00   ; number 24000, ascii & internal format
+end20:  defb    $0d                     ; line end marker
+
+; 30 RANDOMIZE USR 24000
+        defb    0,30                    ; line number
+        defb    end30-($+1)             ; line length
+        defb    0                       ; statement number
+        defb    tRANDOMIZE,tUSR         ; token RANDOMIZE, token USR
+        defm    "24000",$0e0000c05d00   ; number 24000, ascii & internal format
+end30:  defb    $0d                     ; line end marker
+
+program_end:
+
+        ; ZX Spectrum Basic variables
+
+variables_end:

@@ -1,0 +1,115 @@
+; ----------------------------------------------------------------------
+; Plus3 disk loader
+;
+; This will load teletext then all files on the disk like the
+; tape loader
+; ----------------------------------------------------------------------
+
+#include "../teletext.inc"
+
+DOS_OPEN        EQU 0x0106
+DOS_CLOSE       EQU 0x0109
+DOS_READ_HEAD   EQU 0x010F
+DOS_READ        EQU 0x0112
+
+            ORG     24000
+
+loader:     LD      SP, 0x61FF          ; Set stack for 0x6000-61ff
+
+            LD      HL, ldB1            ; Show Loading Banner
+            CALL    wmsg
+
+            LD      HL, telfname        ; Load teletext module
+            CALL    loadFile
+            jp     NC, err
+
+            CALL    teletextInit        ; Initialise Teletext
+            CALL    writeBanner         ; Show our banner
+
+l1:         JP l1
+            ret
+
+; Print A to RST2 as hex - used for error reporting
+err:        PUSH AF
+            RR A
+            RR A
+            RR A
+            RR A
+            call phex
+            POP AF
+phex:       AND 0x0f
+            cp 10
+            JP NC, phex2
+            ADD '0'
+            JR phex3
+phex2:      ADD 'A'-10
+phex3:      RST 2
+            RET
+
+loadFile:   PUSH    HL
+
+            LD      A, (0x5B5C)         ; Set 3DOS rom
+            OR      7                   ; Ram page 3
+            RES     4, A                ; Bit 4 reset
+            CALL    romSel1
+            POP     HL
+            CALL    loadFile1
+            PUSH    AF
+            PUSH    HL
+            LD      A, (0x5B5C)         ; Set 3DOS rom
+            AND     0xF8                ; Ram bank 0
+            SET     4, A                ; Bit 4 set for rom
+            CALL    romSel1
+            POP     HL
+            POP     AF
+            RET
+
+loadFile1:  LD      B, 0                ; B=File 0
+            LD      C, 5                ; C=Shared read
+            LD      D, 0                ; 0 = error if file does not exist
+            LD      E, 1                ; Open file, place filepointer after header
+            CALL    DOS_OPEN
+            RET     NC                  ; exit on error
+
+            LD      B, 0                ; File 0
+            CALL    DOS_READ_HEAD
+            RET     NC                  ; exit on error
+
+            LD      HL,(IX+3)           ; Load address from Basic Header
+            PUSH    HL                  ; Save address for caller as load address
+            CALL    loadFile2
+            POP     HL                  ; Restore HL
+            RET
+
+loadFile2:  LD      DE,(IX+1)           ; File length from Basic Header
+            LD      B, 0                ; File 0
+            LD      C, 0                ; Bank 0 for top ram
+            CALL    DOS_READ
+            RET     NC                  ; exit on error
+
+            LD      B, 0                ; File 0
+            JP      DOS_CLOSE
+
+wmsg:       LD      A,(HL)              ; Simple write null terminated string
+            AND     A                   ; to RST 2
+            RET     Z
+            RST     2
+            INC     HL
+            JR      wmsg
+
+writeBanner:
+            LD      HL, ldBanr          ; Show teletext banner
+            JP      writeString
+
+#include "../machinetype.z80"
+
+telfname:   defb    "TELETEXT", 0xFF
+
+ldB1:       defb    "Loading... ", 0
+ldBanr:     defb    134, "Area51 +3 Disk Loader 0.01", 31, 29, 0, 135, 13, 10
+            defb    132, 157, 135, 141, "     Teletext ZX Spectrum 0.01", 13, 10
+            defb    132, 157, 135, 141, "     Teletext ZX Spectrum 0.01"
+            defb    31, 0, 20, 130, "Please wait whilst loading completes..."
+            defb    0
+
+ttLoad:     defb    0                   ; 0 = RST, != for teletext

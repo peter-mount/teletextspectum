@@ -5,18 +5,26 @@
 # ======================================================================
 export ZASM				= zasm
 
-.PHONY: all loader teletext
-all: teletext test
+.PHONY: all teletext
+all:
+	@$(MAKE) -C tape all
+	@$(MAKE) -C disk all
+	@$(MAKE) teletext test
 
 clean:
 	@$(MAKE) -C tape clean
+	@$(MAKE) -C disk clean
 	$(RM) *.lst *.rom *.tap *.tzx *.dsk
 
-teletext: teletext.rom teletext.tzx teletext-tzx.tzx
+teletext: teletext.rom teletext.tzx teletext-tzx.tzx teletext.dsk
 
 teletext.rom: teletext.z80 charset1.z80
 
 teletext-tzx.tzx: teletext-tzx.z80 teletext.z80 charset1.z80
+
+teletext.dsk: teletext.rom disk/disk.dsk
+	cp disk/disk.dsk $@
+	specfile -dsk $@ teletext.rom 0xF400
 
 # Test application consisting of the loader, teletext, splash screen & test page
 test: test-tzx.tzx test.tzx
@@ -37,7 +45,3 @@ test-tzx.tzx: splash.z80 main.z80
 # Spectrum TAP tape format
 %.tzx: %.z80
 	$(ZASM) $<
-
-disk.dsk: basloader.rom loader.rom teletext.rom
-	cp basloader.rom disk.bas
-	specfile -dsk $@ -format disk.bas 10 loader.rom 24000 teletext.rom 0xF400

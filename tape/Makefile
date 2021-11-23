@@ -13,7 +13,7 @@ clean:
 
 loader: loader.rom loader.tzx loader-tzx.tzx
 
-loader-tzx.tzx: loader-tzx.z80 basloader.z80 loader.z80 machinetype.z80
+loader-tzx.tzx: loader-tzx.z80 basloader.z80 loader.z80 ../machinetype.z80
 
 %.rom: %.z80
 	$(ZASM) $<
