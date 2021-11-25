@@ -16,13 +16,21 @@ DOS_READ        EQU 0x0112
 
 loader:     LD      SP, 0x61FF          ; Set stack for 0x6000-61ff
 
-            LD      HL, telfname        ; Load teletext module
+            LD      HL, teletext        ; Load teletext module
             CALL    loadFile
-            jp     NC, err
+            jp      NC, err
+            CALL    teletextInit        ; Switch screen into teletext mode
+            LD      HL, banner          ; Show a banner, just to have something on screen
+            CALL    writeString
 
-            LD      (addr), HL          ; Save manifest
-l1:         LD      HL, (addr)
+            LD      HL, manifest        ; Load manifest
             CALL    loadFile
+            jp      NC, err
+            LD      (addr), HL          ; Save manifest
+
+l1:         LD      HL, (addr)          ; Get next manifest entry
+            CALL    showFile            ; Display filename
+            CALL    loadFile            ; Load file
             JR      NC, err             ; Fail with error
             CALL    l2                  ; test to see what to do with it
             LD      HL, (addr)          ; Look for next 0xFF
@@ -60,16 +68,37 @@ phex2:      ADD 'A'-10
 phex3:      RST 2
             RET
 
-loadFile:   PUSH    HL
+showFile:   PUSH    HL                  ; Preserve HL on exit
+            CALL    showFile0
+            POP     HL
+            RET
+showFile0:  PUSH    HL                  ; Save HL for display
+            LD      HL, showFiles       ; Clear filename area
+            CALL    writeString
+            POP     HL                  ; Restore HL then display text
+
+            LD      B, 10               ; Max 10 chars
+showFile1:  LD      A, (HL)
+            CP      0xFF
+            RET     z                   ; End of filename marker
+            CALL    oswrch
+            INC     HL
+            DJNZ    showFile1           ; Loop until done
+            RET
+showFiles:  defb    31,29,0,135,32,32,32,32,32,32,32,32,32,32,31,30,0,0
+
+loadFile:   PUSH    HL                  ; Save HL for load
 
             LD      A, (0x5B5C)         ; Set 3DOS rom
             OR      7                   ; Ram page 3
             RES     4, A                ; Bit 4 reset
             CALL    romSel1
-            POP     HL
-            CALL    loadFile1
-            PUSH    AF
+
+            POP     HL                  ; Restore filename
+            CALL    loadFile1           ; Load the file
+            PUSH    AF                  ; Save result in AF & HL
             PUSH    HL
+
             LD      A, (0x5B5C)         ; Set 3DOS rom
             AND     0xF8                ; Ram bank 0
             SET     4, A                ; Bit 4 set for rom
@@ -106,4 +135,8 @@ loadFile2:  LD      DE,(IX+1)           ; File length from Basic Header
 
 #include "../machinetype.z80"
 
-telfname:   defb    "MANIFEST", 0xFF
+manifest:   defb    "MANIFEST", 0xFF
+teletext:   defb    "TELETEXT", 0xFF
+banner:     defb 12, 30, 134, "Please wait", 13, 10
+            defb 132, 157, 135, 141, "            Loading...", 13, 10
+            defb 132, 157, 135, 141, "            Loading...", 0

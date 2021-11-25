@@ -20,7 +20,6 @@
 ; ----------------------------------------------------------------------
 
     ORG     0x6200
-    defb    "TELETEXT", 0xFF    ; Must be first
     defb    "splash", 0xFF      ; Example splash screen
     defb    "main", 0xFF        ; Shows the test card
     defb    0xFF                ; Terminate list
