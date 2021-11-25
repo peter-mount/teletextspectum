@@ -1,7 +1,7 @@
 ; tzx tape loader
 #target tzx
 
-; basloader.z80 containing a small BASIC loader
+; tape.z80 containing a small BASIC loader
 #code bloader,0,17,0
         defb    0                       ; Indicates a Basic program
         defb    "BLoader   "            ; the block name, 10 bytes long
@@ -10,7 +10,7 @@
         defw    program_end-0           ; length of the basic program without variables
 
 #code bloaderdata,0,*,0xff
-#include "basloader.z80"
+#include "tape.z80"
 
 ; loader.z80 containing the unified loader
 #code mloader,0,17,0

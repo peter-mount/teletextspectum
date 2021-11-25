@@ -12,6 +12,8 @@ tPRINT      equ     $F5             ; token PRINT
 tRANDOMIZE  equ     $F9             ; token RANDOMIZE
 tUSR        equ     $C0             ; token USR
 
+        org     0
+
 ; 10 CLEAR 23999
         defb    0,10                    ; line number
         defb    end10-($+1)             ; line length

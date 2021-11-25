@@ -6,16 +6,13 @@
 export ZASM				= zasm
 
 .PHONY: all
-all: disk.dsk
+all: disk.bas loader.rom
 
 clean:
-	$(RM) *.lst *.rom *.bas *.dsk
+	$(RM) *.lst *.rom *.bas
 
 disk.bas: disk.z80
 	$(ZASM) $< -o $@
-
-disk.dsk: disk.bas loader.rom
-	specfile -dsk $@ -format disk.bas 10 loader.rom 24000
 
 %.rom: %.z80
 	$(ZASM) $<
