@@ -36,8 +36,14 @@ sGraphics       equ 1               ; bit 1 true if graphics mode, false text
 sSepGraphics    equ 2               ; bit 2 true if separated, false contiguous graphics
 
 refreshScreenImpl:
-    call    getPosImpl       ; Save current pos
+    call    getPosImpl          ; Save current pos
     push    bc
+
+    ld      a,(vStatus)         ; Save status
+    push    af
+    sub     a                   ; Reset state
+    ld      (vduBuffPos),a      ; vdu buffer empty
+    ld      (vStatus),a         ; status
 
     call    teletextHome           ; home cursor
 
@@ -53,9 +59,10 @@ refScr2:
     dec     c
     jr      nz, refScr1
 
+    pop     af                  ; Restore vStatus
+    ld      (vStatus),a
     pop     bc                  ; Restore original position
     jp      setPosImpl
-
 
 clearScreen:
     ld      hl,&4000            ; Start of screen memory
@@ -77,7 +84,7 @@ clearScreen:
     ld      (vduBuffPos),a      ; vdu buffer empty
     ld      (vStatus),a         ; status
 
-    ld      hl, teletextScreen      ; Clear text screen
+    ld      hl, teletextScreen  ; Clear text screen
     ld      (hl), 32            ; with spaces
     ld      de, teletextScreen+1
     ld      bc, 40*24-1
