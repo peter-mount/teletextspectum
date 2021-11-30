@@ -5,13 +5,18 @@
 # ======================================================================
 export ZASM				= zasm
 
-.PHONY: all teletext test disk tape
-all: disk tape teletext
+SPECFILE		= specfile
+TELETEXT_TAP	= teletext.tap
+TELETEXT_TZX	= teletext.tzx
+TELETEXT_DSK	= teletext.dsk
+
+.PHONY: all disk tape
+all: $(TELETEXT_DSK) $(TELETEXT_TAP) $(TELETEXT_TZX)
 
 clean:
 	@$(MAKE) -C tape clean
 	@$(MAKE) -C disk clean
-	$(RM) *.lst *.rom *.tap *.tzx *.dsk
+	@$(RM) *.lst *.rom *.tap *.tzx *.dsk
 
 disk:
 	@$(MAKE) -C disk all
@@ -19,33 +24,16 @@ disk:
 tape:
 	@$(MAKE) -C tape all
 
-teletext: teletext.rom teletext.tzx teletext.tap teletext.dsk
-
 teletext.rom: teletext.z80 charset1.z80
 
-teletext.dsk: teletext.rom disk/disk.bas disk/loader.rom
-	specfile -dsk $@ -format disk/disk.bas 10 disk/loader.rom 24000 teletext.rom 0xF400
+$(TELETEXT_DSK): teletext.rom disk
+	@$(SPECFILE) -dsk $@ -format disk/disk.bas 10 disk/loader.rom 24000 teletext.rom 0xF400
 
-teletext.tzx: teletext.rom tape/tape.bas tape/loader.rom
-	specfile -tzx $@ tape/tape.bas 10 tape/loader.rom 24000 teletext.rom 0xF400
+$(TELETEXT_TZX): teletext.rom tape
+	@$(SPECFILE) -tzx $@ tape/tape.bas 10 tape/loader.rom 24000 teletext.rom 0xF400
 
-teletext.tap: teletext.rom tape/tape.bas tape/loader.rom
-	specfile -tap $@ tape/tape.bas 10 tape/loader.rom 24000 teletext.rom 0xF400
-
-manifest.rom: manifest.z80
-
-# Test application consisting of the loader, teletext, splash screen & test page
-#test: test-tzx.tzx test.tzx test.dsk
-#test.tzx: tape/loader-tzx.tzx teletext-tzx.tzx test-tzx.tzx
-#	cat $^ >test.tzx
-
-#test.dsk: teletext.dsk manifest.rom splash.rom main.rom
-#	cp teletext.dsk $@
-#	specfile -dsk $@ manifest.rom 0x6200 splash.rom 0xFB00 main.rom 0x7000
-
-test-tzx.tzx: splash.z80 main.z80
-
-#teletext.tzx: teletext.z80 loader.z80 machinetype.z80 main.z80 screen.z80 charset1.z80 splash.z80
+$(TELETEXT_TAP): teletext.rom tape
+	@$(SPECFILE) -tap $@ tape/tape.bas 10 tape/loader.rom 24000 teletext.rom 0xF400
 
 %.rom: %.z80
-	$(ZASM) $<
+	@$(ZASM) $<

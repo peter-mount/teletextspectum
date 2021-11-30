@@ -9,10 +9,10 @@ export ZASM				= zasm
 all: disk.bas loader.rom
 
 clean:
-	$(RM) *.lst *.rom *.bas
+	@$(RM) *.lst *.rom *.bas
 
 disk.bas: disk.z80
-	$(ZASM) $< -o $@
+	@$(ZASM) $< -o $@
 
 %.rom: %.z80
-	$(ZASM) $<
+	@$(ZASM) $<

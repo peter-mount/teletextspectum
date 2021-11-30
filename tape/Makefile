@@ -9,10 +9,10 @@ export ZASM				= zasm
 all: loader.rom tape.bas
 
 clean:
-	$(RM) *.lst *.rom *.bas
+	@$(RM) *.lst *.rom *.bas
 
 tape.bas: tape.z80
-	$(ZASM) $< -o $@
+	@$(ZASM) $< -o $@
 
 %.rom: %.z80
-	$(ZASM) $<
+	@$(ZASM) $<
