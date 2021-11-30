@@ -12,9 +12,6 @@ machineType     = 0xFF00                ; We will store the machine type here
 loader:     LD      HL, ldB1            ; Show Banner
             CALL    wmsg
 
-            CALL    detectMachine       ; Detect and store machine type
-            LD      (machineType), A
-
 loadLoop:   LD      HL, loadLoop        ; Load stack with return address
             PUSH    HL                  ; as the loader start so we repeat
 
@@ -76,6 +73,7 @@ tPrTT1:     LD      A, (HL)             ; write name to oswrch
             POP     BC                  ; Restore cursor position
             JP      teletextSetPos
 
+; Write message in HL to RST2 - e.g. before teletext module has loaded
 wmsg:       LD      A,(HL)              ; Simple write null terminated string
             AND     A                   ; to RST 2
             RET     Z
@@ -83,35 +81,15 @@ wmsg:       LD      A,(HL)              ; Simple write null terminated string
             INC     HL
             JR      wmsg
 
+; Write banner after teletext module has loaded
 writeBanner:
             LD      HL, ldBanr          ; Show teletext banner
-            CALL    writeString
-
-            LD      A,(machineType)     ; Show machine name
-            ADD     A,A                 ; a=a*8
-            ADD     A,A
-            ADD     A,A
-            LD      C,A
-            LD      B,0
-            LD      HL, ldMachine
-            ADD     HL, BC
             JP      writeString
 
-#include "../machinetype.z80"
-
 ldB1:       defb    "Loading... ", 0
-ldBanr:     defb    134, "Area51 ZX Tape Loader 0.01", 31, 29, 0, 135, 13, 10
-            defb    132, 157, 135, 141, "     Teletext ZX Spectrum 0.01", 13, 10
-            defb    132, 157, 135, 141, "     Teletext ZX Spectrum 0.01"
-            defb    31, 0, 20, 130, "Please wait whilst loading completes..."
-            defb    31, 0, 4, 13, 131, "Machine: ", 0
-
-; Machine name table, 8 bytes per machine type
-ldMachine:  defb    "48k", 13,10, 0,0,0     ; 48K
-            defb    "128K", 13,10, 0,0      ; 128K
-            defb    "128ES", 13,10, 0       ; 128K Spanish
-            defb    "+2", 13,10, 0,0,0, 0   ; +2
-            defb    "+2A/+3", 13, 10, 0     ; +2A/+3 Last entry, ok for this to be 9 bytes long
+ldBanr:     defb 12, 30, 134, "Please wait", 13, 10
+            defb 132, 157, 135, 141, "            Loading...", 13, 10
+            defb 132, 157, 135, 141, "            Loading...", 0
 
 ttLoad:     defb    0                   ; 0 = RST, != for teletext
 
