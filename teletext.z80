@@ -530,13 +530,15 @@ wrchr31:
 ;   HL      Unchanged
 oswrchImpl:
     push    af
-    push    de
-    push    hl
-    push    bc
+    exx                         ; As we are saving all use exx and alternate registers
+    ;push    de                 ; Will save time as no memory access is required
+    ;push    hl
+    ;push    bc
     call    oswrch0
-    pop     bc
-    pop     hl
-    pop     de
+    ;pop     bc
+    ;pop     hl
+    ;pop     de
+    exx
     pop     af
     ret
 
